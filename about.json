@@ -1,10 +1,8 @@
 {
-  "name": "discourse-segment-theme-component",
-  "about_url": "https://github.com/scossar/discourse-segment-theme-component",
-  "license_url": "https://github.com/scossar/discourse-segment-theme-component/blob/master/LICENSE",
+  "name": "discourse-amplitude-component",
+  "about_url": "https://github.com/robert-j-webb/discourse-amplitude-component",
+  "license_url": "https://github.com/robert-j-webb/discourse-amplitude-component/blob/main/LICENSE",
   "component": true,
-  "assets": {
-  },
-  "color_schemes": {
-  }
+  "assets": {},
+  "color_schemes": {}
 }

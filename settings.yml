@@ -1,15 +1,18 @@
-segment_write_key:
+amplitude_api_key:
   default: ""
-  description: "The Write Key for your Segment Source"
+  description: "Amplitude API key"
 track_users:
   default: true
-  description: "Call the Segment identify function when a user logs in or refreshes the site"
+  description: "Call the identify function when a user logs in or refreshes the site"
 track_by_external_id:
   default: false
   description: "For sites with SSO enabled, track users by their external_id instead of by their Discourse id"
 include_user_email:
   default: false
   description: "Include user's email address in identify payload"
+include_user_name:
+  default: false
+  description: "Include user's name in identify payload"
 track_page:
   default: false
   description: "Track page visits by page type (tracks the latest, categories, category, tags, and topic pages)"
@@ -30,4 +33,4 @@ track_bookmarks:
   description: "Track bookmarks"
 extend_content_security_policy:
   type: list
-  default: "script_src: https://cdn.segment.com/analytics.js/"
+  default: "script_src: https://cdn.amplitude.com/libs/"

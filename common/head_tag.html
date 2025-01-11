@@ -1,187 +1,46 @@
-<script type="text/discourse-plugin" version="0.12.1">
-!function(){var analytics=window.analytics=window.analytics||[];if(!analytics.initialize)if(analytics.invoked)window.console&&console.error&&console.error("Segment snippet included twice.");else{analytics.invoked=!0;analytics.methods=["trackSubmit","trackClick","trackLink","trackForm","pageview","identify","reset","group","track","ready","alias","debug","page","once","off","on","addSourceMiddleware","addIntegrationMiddleware","setAnonymousId","addDestinationMiddleware"];analytics.factory=function(e){return function(){var t=Array.prototype.slice.call(arguments);t.unshift(e);analytics.push(t);return analytics}};for(var e=0;e<analytics.methods.length;e++){var key=analytics.methods[e];analytics[key]=analytics.factory(key)}analytics.load=function(key,e){var t=document.createElement("script");t.type="text/javascript";t.async=!0;t.src="https://cdn.segment.com/analytics.js/v1/" + key + "/analytics.min.js";var n=document.getElementsByTagName("script")[0];n.parentNode.insertBefore(t,n);analytics._loadOptions=e};analytics._writeKey="vqIaLU7RzBgfKnRnmQkTVR5TtuRxlG2R";analytics.SNIPPET_VERSION="4.13.2";
-analytics.load(settings.segment_write_key);
-}}();
-
-const ssoEnabled = api.container.lookup('site-settings:main').enable_discourse_connect;
-let currentUser = api.getCurrentUser();
-let referrer = document.referrer;
-let ua = navigator.userAgent;
-let platform = "Web";
-let userID;
-let currentUrl;
-let currentPage;
-
-// identify() will be called when a user logs in, or refreshes the page.
-if (settings.track_users && currentUser && !userID) {
-    api.container.lookup('store:main').find('user', currentUser.username).then((user) => {
-        userID = ssoEnabled && settings.track_by_external_id ? user.external_id : user.id;
-        if (settings.include_user_email) {
-            analytics.identify(userID, {email: user.email})
-        } else {
-            analytics.identify(userID);
-        }
-    });
+<script type="text/discourse-plugin" version="2.0.0">
+// Do not track EU! GDPR
+var EU_TIMEZONES = [
+    'Europe/Vienna',
+    'Europe/Brussels',
+    'Europe/Sofia',
+    'Europe/Zagreb',
+    'Asia/Famagusta',
+    'Asia/Nicosia',
+    'Europe/Prague',
+    'Europe/Copenhagen',
+    'Europe/Tallinn',
+    'Europe/Helsinki',
+    'Europe/Paris',
+    'Europe/Berlin',
+    'Europe/Busingen',
+    'Europe/Athens',
+    'Europe/Budapest',
+    'Europe/Dublin',
+    'Europe/Rome',
+    'Europe/Riga',
+    'Europe/Vilnius',
+    'Europe/Luxembourg',
+    'Europe/Malta',
+    'Europe/Amsterdam',
+    'Europe/Warsaw',
+    'Atlantic/Azores',
+    'Atlantic/Madeira',
+    'Europe/Lisbon',
+    'Europe/Bucharest',
+    'Europe/Bratislava',
+    'Europe/Ljubljana',
+    'Africa/Ceuta',
+    'Atlantic/Canary',
+    'Europe/Madrid',
+    'Europe/Stockholm',
+  ];
+var timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+if (EU_TIMEZONES.includes(timezone)) {
+window.disableAmplitude = true;
+return;
 }
-
-if (ua.match(/(iPhone|iPod|iPad)/)) {
-    platform = "iOS";
-}
-
-if (ua.match(/(Android)/)) {
-    platform = "Android";
-}
-
-function page(title, opts) {
-    opts = opts || {};
-    opts.platform = platform;
-    currentPage = title;
-    window.analytics.page(currentPage, opts);
-}
-
-function track(title, opts) {
-    opts = opts || {};
-    opts.platform = platform;
-    opts.location = currentPage;
-    window.analytics.track(title, opts);
-}
-
-function pageChanged(container, details) {
-    let routeName = details.currentRouteName;
-    let route = container.lookup(`route:${routeName}`);
-    let model = route.currentModel;
-    let pageTitle;
-
-    currentUrl = window.location.href;
-
-    switch (routeName) {
-        case "discovery.latest":
-            pageTitle = "Latest Topics";
-            page(pageTitle, {referrer: referrer});
-            break;
-        case "discovery.categories":
-            pageTitle = "All Categories";
-            page(pageTitle, {referrer: referrer});
-            break;
-        case "discovery.parentCategory":
-        case "discovery.category":
-            if (model && model.category) {
-                pageTitle = `Category: ${model.category.name}`;
-                page(pageTitle, {referrer: referrer});
-            }
-            break;
-        case "tags.show":
-            if (model && model.id) {
-                pageTitle = `Tag: ${model.id}`;
-                page(pageTitle, {referrer: referrer});
-            }
-            break;
-        case "tags.showCategory":
-            if (model && model.id) {
-                pageTitle = `Category Tag: ${model.id}`;
-                page(pageTitle, {referrer: referrer});
-            }
-            break;
-        case "topic.fromParams":
-        case "topic.fromParamsNear":
-            if (details.title) {
-                pageTitle = `Topic: ${details.title}`;
-                page(pageTitle, {referrer: referrer});
-            }
-    }
-
-    referrer = currentUrl;
-}
-
-if (settings.track_page) {
-    api.onAppEvent("page:changed", details => {
-            pageChanged(api.container, details);
-        }
-    );
-}
-
-if (settings.track_topic_creation) {
-    api.onAppEvent("topic:created", (post, composerModel) => {
-        if (post) {
-            track("Topic Created", {
-                topic_id: post.topic_id,
-                topic_title: post.title,
-                category_id: composerModel.get("category.id"),
-                category_name: composerModel.get("category.name"),
-            });
-        }
-    });
-}
-
-if (settings.track_post_creation) {
-    api.onAppEvent("post:created", post => {
-        if (post) {
-            track("Post Created", {
-                post_id: post.id,
-                topic_id: post.get("topic.id"),
-                topic_title: post.get("topic.title"),
-                category_id: post.get("topic.category.id"),
-                category_name: post.get("topic.category.name"),
-            });
-        }
-    });
-}
-
-if (settings.track_likes) {
-    api.onAppEvent("page:like-toggled", (post, likeAction) => {
-        let topic = post.topic;
-        if (post && topic && likeAction && likeAction.acted) {
-            track("Like", {
-                topic_id: topic.id,
-                topic_title: topic.title,
-                category_id: topic.get("category.id"),
-                category_name: topic.get("category.name"),
-                post_id: post.id
-            });
-        }
-    });
-}
-
-if (settings.track_bookmarks) {
-    api.onAppEvent("page:bookmark-post-toggled", post => {
-        let topic = post.topic;
-        if (post && post.bookmarked && topic) {
-            track(
-                post.post_number === 1 ? "Topic Bookmarked" : "Post Bookmarked",
-                {
-                    topic_id: topic.id,
-                    topic_title: topic.title,
-                    category_id: topic.get("category.id"),
-                    category_name: topic.get("category.name"),
-                    post_id: post.post_number === 1 ? null : post.id
-                }
-            );
-        }
-    });
-}
-
-if (settings.track_flags) {
-    api.onAppEvent("post:flag-created", (post, postAction) => {
-        if (post && postAction) {
-            track("Flag", {
-                post_id: post.id,
-                topic_id: post.topic_id,
-                topic_title: post.get("topic.title"),
-                flag_option: postAction.get("actionType.name")
-            });
-        }
-    });
-
-    api.onAppEvent("topic:flag-created", (post, postAction) => {
-        if (post && postAction) {
-            track("Flag", {
-                post_id: post.topic_id,
-                topic_title: post.get("topic.title"),
-                category_id: post.get("topic.category.id"),
-                category_name: post.get("topic.category.name"),
-                flag_option: postAction.get("actionType.name")
-            });
-        }
-    });
-}
+!function(){"use strict";!function(e,t){var r=e.amplitude||{_q:[],_iq:{}};if(r.invoked)e.console&&console.error&&console.error("Amplitude snippet has been loaded.");else{var n=function(e,t){e.prototype[t]=function(){return this._q.push({name:t,args:Array.prototype.slice.call(arguments,0)}),this}},s=function(e,t,r){return function(n){e._q.push({name:t,args:Array.prototype.slice.call(r,0),resolve:n})}},o=function(e,t,r){e._q.push({name:t,args:Array.prototype.slice.call(r,0)})},i=function(e,t,r){e[t]=function(){if(r)return{promise:new Promise(s(e,t,Array.prototype.slice.call(arguments)))};o(e,t,Array.prototype.slice.call(arguments))}},a=function(e){for(var t=0;t<g.length;t++)i(e,g[t],!1);for(var r=0;r<m.length;r++)i(e,m[r],!0)};r.invoked=!0;var c=t.createElement("script");c.type="text/javascript",c.integrity="sha384-K1KvcW5ay5cpQB4M23T3dC4N4z1ni0GPHpreY51koDicHJB6P1wwX8WA7xlFygXT",c.crossOrigin="anonymous",c.async=!0,c.src="https://cdn.amplitude.com/libs/analytics-browser-2.11.5-min.js.gz",c.onload=function(){e.amplitude.runQueuedFunctions||console.log("[Amplitude] Error: could not load SDK")};var u=t.getElementsByTagName("script")[0];u.parentNode.insertBefore(c,u);for(var l=function(){return this._q=[],this},p=["add","append","clearAll","prepend","set","setOnce","unset","preInsert","postInsert","remove","getUserProperties"],d=0;d<p.length;d++)n(l,p[d]);r.Identify=l;for(var f=function(){return this._q=[],this},v=["getEventProperties","setProductId","setQuantity","setPrice","setRevenue","setRevenueType","setEventProperties"],y=0;y<v.length;y++)n(f,v[y]);r.Revenue=f;var g=["getDeviceId","setDeviceId","getSessionId","setSessionId","getUserId","setUserId","setOptOut","setTransport","reset","extendSession"],m=["init","add","remove","track","logEvent","identify","groupIdentify","setGroup","revenue","flush"];a(r),r.createInstance=function(e){return r._iq[e]={_q:[]},a(r._iq[e]),r._iq[e]},e.amplitude=r}}(window,document)}();
+        
+amplitude.init(settings.amplitude_api_key, {autocapture: {pageViews: false}});
 </script>
